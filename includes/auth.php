@@ -18,12 +18,15 @@ function init_session(): void {
         ini_set('session.cookie_httponly', 1);
         ini_set('session.use_only_cookies', 1);
         
+        $isHttps = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') 
+            || (!empty($_SERVER['HTTP_X_FORWARDED_PROTO']) && $_SERVER['HTTP_X_FORWARDED_PROTO'] === 'https');
+
         session_set_cookie_params([
             'lifetime' => $lifetime,
             'path' => '/',
             'httponly' => true,
             'samesite' => 'Lax',
-            'secure' => (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off')
+            'secure' => $isHttps
         ]);
         
         session_start();

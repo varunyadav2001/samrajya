@@ -653,6 +653,15 @@
     -webkit-tap-highlight-color: transparent;
   }
 
+  .pos-item-card:active {
+    transform: scale(0.97);
+    background-color: var(--slate-100);
+  }
+
+  .pos-mobile-tab-btn:active {
+    transform: scale(0.98);
+  }
+
   .pos-item-header {
     margin-bottom: 6px;
   }
@@ -762,6 +771,11 @@
     -webkit-tap-highlight-color: transparent;
     -webkit-user-select: none;
     user-select: none;
+  }
+
+  .pos-mobile-floating-bar:active {
+    transform: scale(0.98);
+    opacity: 0.95;
   }
 
   @keyframes slideUpFloat {

@@ -229,7 +229,9 @@ function generate_clean_sku(string $prefix, string $category, string $size, stri
  * so that links shared via WhatsApp can be opened directly on customers' mobile phones!
  */
 function get_public_base_url(): string {
-    $proto = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') ? "https" : "http";
+    $isHttps = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') 
+        || (!empty($_SERVER['HTTP_X_FORWARDED_PROTO']) && $_SERVER['HTTP_X_FORWARDED_PROTO'] === 'https');
+    $proto = $isHttps ? "https" : "http";
     $host = $_SERVER['HTTP_HOST'] ?? '127.0.0.1:8000';
     $hostParts = explode(':', $host);
     $hostOnly = $hostParts[0];
