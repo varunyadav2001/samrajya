@@ -1,0 +1,7 @@
+/vendor
+.git
+storage/invoices/*.pdf
+storage/data/*.sqlite
+storage/logs/*.log
+config/config.php
+config/firebase-service-account.json

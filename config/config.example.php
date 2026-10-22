@@ -6,33 +6,34 @@
 
 return [
     'app' => [
-        'name' => 'Samrajya Mens Wear',
-        'short_name' => 'SMW',
-        'tagline' => "The Royal Destination for Men's Fashion",
-        'env' => 'development', // 'development' or 'production'
-        'url' => 'http://localhost/samrajya',
+        'name' => 'साम्राज्य.07 — The perfect men\'s shop',
+        'short_name' => 'साम्राज्य.07',
+        'tagline' => "The perfect men's shop",
+        'env' => 'production',
+        'url' => 'https://samrajya-bice.vercel.app',
         'session_lifetime' => 86400, // 24 hours
         'timezone' => 'Asia/Kolkata',
     ],
 
     // Shop and Invoice Details (Configurable, verify before production)
     'shop' => [
-        'name' => 'Samrajya Mens Wear',
-        'tagline' => "The Royal Destination for Men's Fashion",
-        'phone' => '+91 98765 43210',
-        'alt_phone' => '+91 91234 56789',
-        'email' => 'sales@samrajyamenswear.com',
-        'address_line1' => 'Shop No. 4 & 5, Royal Palace Commercial Hub',
-        'address_line2' => 'Station Road, Near Central Plaza',
-        'city' => 'Kolhapur',
+        'name' => 'साम्राज्य.07',
+        'english_name' => 'Samrajya.07',
+        'tagline' => "The perfect men's shop",
+        'phone' => '',
+        'alt_phone' => '',
+        'email' => 'admin@samrajyamenswear.com',
+        'address_line1' => '',
+        'address_line2' => '',
+        'city' => 'Tasgaon',
         'state' => 'Maharashtra',
         'state_code' => '27',
-        'pincode' => '416001',
+        'pincode' => '',
         
-        // GST Details (Set is_gst_registered to false if shop is unregistered)
-        'is_gst_registered' => true,
-        'gstin' => '27AAAAA0000A1Z5', // Replace with verified GSTIN
-        'default_invoice_type' => 'gst', // 'gst' or 'nongst'
+        // GST Details
+        'is_gst_registered' => false,
+        'gstin' => '',
+        'default_invoice_type' => 'nongst',
         
         // Invoice numbering prefixes
         'gst_invoice_prefix' => 'SMW-GST-',
@@ -40,28 +41,28 @@ return [
         'return_prefix' => 'SMW-RET-',
         
         // Payment & Terms
-        'upi_id' => 'samrajya@okhdfcbank',
+        'upi_id' => '',
         'currency_symbol' => '₹',
         'currency_code' => 'INR',
-        'return_policy' => 'Returns or exchanges accepted within 7 days with original bill and tags intact. No exchange on altered garments.',
-        'invoice_footer' => 'Thank you for shopping with Samrajya Mens Wear. Visit again!',
+        'return_policy' => 'Returns or exchanges accepted within 7 days with original bill and tags intact.',
+        'invoice_footer' => 'Thank you for shopping with साम्राज्य.07. Visit again!',
     ],
 
     // Firebase Web Client Configuration (Used for Firebase Auth on login.php)
     'firebase_client' => [
-        'apiKey' => 'AIzaSyExamplePlaceholderKeyHere',
-        'authDomain' => 'samrajya-mens-wear.firebaseapp.com',
-        'projectId' => 'samrajya-mens-wear',
-        'storageBucket' => 'samrajya-mens-wear.appspot.com',
-        'messagingSenderId' => '123456789012',
-        'appId' => '1:123456789012:web:abcdef1234567890',
+        'apiKey' => 'AIzaSyDZgH-8ZNLuN1k3iosntJsCNogo5zjQ93w',
+        'authDomain' => 'samrajya-f81ae.firebaseapp.com',
+        'projectId' => 'samrajya-f81ae',
+        'storageBucket' => 'samrajya-f81ae.firebasestorage.app',
+        'messagingSenderId' => '1073715276397',
+        'appId' => '1:1073715276397:web:c1024911c9335c50032d64',
+        'measurementId' => 'G-K24C07FJBM',
     ],
 
     // Server-Side Firebase Admin Configuration
     'firebase_admin' => [
-        // Path to your downloaded service account JSON file from Firebase Console
         'service_account_path' => __DIR__ . '/firebase-service-account.json',
-        'project_id' => 'samrajya-mens-wear',
+        'project_id' => 'samrajya-f81ae',
     ],
 
     // Admin Access Control (Server-side authorization check)

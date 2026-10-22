@@ -8,21 +8,27 @@ define('APP_ROOT', dirname(__DIR__));
 // Timezone configuration
 date_default_timezone_set('Asia/Kolkata');
 
+$isVercel = !empty(getenv('VERCEL')) || !empty($_ENV['VERCEL']) || !empty($_SERVER['VERCEL']);
+$storageBase = $isVercel ? '/tmp/storage' : APP_ROOT . '/storage';
+if (!defined('STORAGE_PATH')) {
+    define('STORAGE_PATH', $storageBase);
+}
+
 // Error reporting for robust diagnosis
 error_reporting(E_ALL & ~E_DEPRECATED & ~E_USER_DEPRECATED);
 ini_set('display_errors', '0');
 ini_set('log_errors', '1');
-ini_set('error_log', APP_ROOT . '/storage/logs/php_errors.log');
+ini_set('error_log', $storageBase . '/logs/php_errors.log');
 
 // Ensure storage directories exist
 $requiredDirs = [
-    APP_ROOT . '/storage/invoices',
-    APP_ROOT . '/storage/data',
-    APP_ROOT . '/storage/logs'
+    $storageBase . '/invoices',
+    $storageBase . '/data',
+    $storageBase . '/logs'
 ];
 foreach ($requiredDirs as $dir) {
     if (!is_dir($dir)) {
-        @mkdir($dir, 0755, true);
+        @mkdir($dir, 0777, true);
     }
 }
 

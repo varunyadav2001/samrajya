@@ -22,7 +22,7 @@ class FirestoreClient {
     public function __construct(array $config) {
         $serviceAccountPath = $config['service_account_path'] ?? '';
         $this->projectId = $config['project_id'] ?? '';
-        $this->cacheFile = APP_ROOT . '/storage/data/.token_cache_' . md5($this->projectId) . '.json';
+        $this->cacheFile = (defined('STORAGE_PATH') ? STORAGE_PATH : (APP_ROOT . '/storage')) . '/data/.token_cache_' . md5($this->projectId) . '.json';
 
         if (!empty($serviceAccountPath) && file_exists($serviceAccountPath)) {
             $json = json_decode(file_get_contents($serviceAccountPath), true);

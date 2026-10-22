@@ -20,7 +20,7 @@ class DatabaseManager {
 
     private function __construct(array $config) {
         $this->config = $config;
-        $this->dbPath = APP_ROOT . '/storage/data/samrajya_db.sqlite';
+        $this->dbPath = (defined('STORAGE_PATH') ? STORAGE_PATH : (APP_ROOT . '/storage')) . '/data/samrajya_db.sqlite';
 
         // Initialize SQLite local store (always available as resilient store/cache)
         $this->initSqlite();
