@@ -161,13 +161,41 @@ const App = {
             });
         });
 
-        // Mobile sidebar toggle
+        // Mobile sidebar toggle with backdrop & close button
         const toggleBtn = document.querySelector('.mobile-toggle');
         const sidebar = document.querySelector('.sidebar');
-        if (toggleBtn && sidebar) {
-            toggleBtn.addEventListener('click', () => {
-                sidebar.classList.toggle('open');
+        const backdrop = document.getElementById('sidebarBackdrop');
+        const closeBtn = document.getElementById('sidebarCloseBtn');
+
+        function openSidebar() {
+            if (sidebar) sidebar.classList.add('open');
+            if (backdrop) backdrop.classList.add('active');
+            document.body.style.overflow = 'hidden';
+        }
+
+        function closeSidebar() {
+            if (sidebar) sidebar.classList.remove('open');
+            if (backdrop) backdrop.classList.remove('active');
+            document.body.style.overflow = '';
+        }
+
+        if (toggleBtn) {
+            toggleBtn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                if (sidebar && sidebar.classList.contains('open')) {
+                    closeSidebar();
+                } else {
+                    openSidebar();
+                }
             });
+        }
+
+        if (closeBtn) {
+            closeBtn.addEventListener('click', closeSidebar);
+        }
+
+        if (backdrop) {
+            backdrop.addEventListener('click', closeSidebar);
         }
     }
 };

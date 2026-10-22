@@ -25,6 +25,18 @@ require __DIR__ . '/includes/header.php';
 ?>
 
 <div class="pos-layout">
+    <!-- Mobile Tabs Navigation (Visible only on screens <= 900px) -->
+    <div class="pos-mobile-nav" id="posMobileNav">
+        <button type="button" class="pos-mobile-tab-btn active" id="tabBtnProducts" onclick="POS.switchTab('products')">
+            <svg width="18" height="18" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/></svg>
+            <span>Products / माल</span>
+        </button>
+        <button type="button" class="pos-mobile-tab-btn" id="tabBtnCart" onclick="POS.switchTab('cart')">
+            <svg width="18" height="18" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z"/></svg>
+            <span>Cart / बिल (<span id="mobileTabCount">0</span>)</span>
+        </button>
+    </div>
+
     <!-- Products Panel (Left) -->
     <div class="pos-products-panel">
         <div class="pos-search-bar">
@@ -177,6 +189,18 @@ require __DIR__ . '/includes/header.php';
                 <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
                 Complete Sale & Print Bill (F9)
             </button>
+        </div>
+    </div>
+
+    <!-- Mobile Floating Checkout Bar -->
+    <div id="posMobileFloatingBar" class="pos-mobile-floating-bar" style="display:none;" onclick="POS.switchTab('cart')">
+        <div class="floating-bar-info">
+            <span class="floating-bar-badge" id="mobileFloatCount">0 items</span>
+            <span class="floating-bar-total" id="mobileFloatTotal">₹ 0.00</span>
+        </div>
+        <div class="floating-bar-action">
+            <span>View Bill & Pay</span>
+            <svg width="18" height="18" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M9 5l7 7-7 7"/></svg>
         </div>
     </div>
 </div>

@@ -66,7 +66,7 @@ require __DIR__ . '/includes/header.php';
     </div>
 </div>
 
-<div style="display:grid; grid-template-columns: 1fr 1fr; gap:24px; align-items:start;">
+<div class="settings-grid" style="display:grid; grid-template-columns: 1fr 1fr; gap:24px; align-items:start;">
     
     <!-- Left Column: User Profile Information -->
     <div class="card">

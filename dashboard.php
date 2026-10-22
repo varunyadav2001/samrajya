@@ -257,7 +257,7 @@ require __DIR__ . '/includes/header.php';
 </div>
 
 <!-- Charts & Highlights Row -->
-<div style="display:grid; grid-template-columns: 2fr 1fr; gap:20px; margin-bottom:24px;">
+<div class="dash-charts-grid" style="display:grid; grid-template-columns: 2fr 1fr; gap:20px; margin-bottom:24px;">
     <!-- Sales Revenue Trend -->
     <div class="card" style="margin-bottom:0;">
         <div class="card-header">
@@ -329,7 +329,7 @@ require __DIR__ . '/includes/header.php';
 </div>
 
 <!-- Bottom Row: Recent Invoices & Low Stock -->
-<div style="display:grid; grid-template-columns: 3fr 2fr; gap:20px;">
+<div class="dash-bottom-grid" style="display:grid; grid-template-columns: 3fr 2fr; gap:20px;">
     <!-- Recent Invoices -->
     <div class="card">
         <div class="card-header">

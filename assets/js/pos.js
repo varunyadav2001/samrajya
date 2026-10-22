@@ -21,6 +21,33 @@ const POS = {
         gstin: ''
     },
     customerSearchTimer: null,
+    activeMobileTab: 'products',
+
+    switchTab(tab) {
+        this.activeMobileTab = tab;
+        const productsPanel = document.querySelector('.pos-products-panel');
+        const cartPanel = document.querySelector('.pos-cart-panel');
+        const tabBtnProducts = document.getElementById('tabBtnProducts');
+        const tabBtnCart = document.getElementById('tabBtnCart');
+        const floatBar = document.getElementById('posMobileFloatingBar');
+
+        if (tab === 'cart') {
+            if (productsPanel) productsPanel.classList.add('mobile-hidden');
+            if (cartPanel) cartPanel.classList.add('mobile-active');
+            if (tabBtnProducts) tabBtnProducts.classList.remove('active');
+            if (tabBtnCart) tabBtnCart.classList.add('active');
+            if (floatBar) floatBar.style.display = 'none';
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        } else {
+            if (productsPanel) productsPanel.classList.remove('mobile-hidden');
+            if (cartPanel) cartPanel.classList.remove('mobile-active');
+            if (tabBtnProducts) tabBtnProducts.classList.add('active');
+            if (tabBtnCart) tabBtnCart.classList.remove('active');
+            if (floatBar) {
+                floatBar.style.display = (this.cart.length > 0) ? 'flex' : 'none';
+            }
+        }
+    },
 
     init() {
         this.loadProducts();
@@ -663,6 +690,25 @@ const POS = {
         document.getElementById('cartRoundOff').innerText = (roundOff >= 0 ? '+ ' : '') + App.formatINR(roundOff);
         document.getElementById('cartGrandTotal').innerText = App.formatINR(roundedTotal);
 
+        // Update mobile indicators
+        const mobileTabCount = document.getElementById('mobileTabCount');
+        if (mobileTabCount) mobileTabCount.innerText = totalPcs;
+
+        const mobileFloatCount = document.getElementById('mobileFloatCount');
+        if (mobileFloatCount) mobileFloatCount.innerText = `${this.cart.length} item${this.cart.length !== 1 ? 's' : ''} (${totalPcs} pcs)`;
+
+        const mobileFloatTotal = document.getElementById('mobileFloatTotal');
+        if (mobileFloatTotal) mobileFloatTotal.innerText = App.formatINR(roundedTotal);
+
+        const floatBar = document.getElementById('posMobileFloatingBar');
+        if (floatBar) {
+            if (this.cart.length > 0 && this.activeMobileTab === 'products') {
+                floatBar.style.display = 'flex';
+            } else {
+                floatBar.style.display = 'none';
+            }
+        }
+
         const checkoutBtn = document.getElementById('checkoutBtn');
         if (checkoutBtn) {
             checkoutBtn.disabled = (this.cart.length === 0);
@@ -774,6 +820,7 @@ const POS = {
             document.getElementById('billDiscountInput').value = '';
             this.resetCustomer();
             this.renderCart();
+            this.switchTab('products');
 
             // Reload fresh stock balances in background
             this.loadProducts();

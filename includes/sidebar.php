@@ -20,6 +20,9 @@ $sidebarTagline = $sidebarSettings['tagline'] ?? "The perfect men's shop";
             <h1 style="font-size: 16px; font-weight: 800; letter-spacing: 0.5px;"><?= htmlspecialchars($sidebarShopName) ?></h1>
             <span style="font-size: 9.5px; color: var(--gold-400); text-transform: none; letter-spacing: 0.5px;"><?= htmlspecialchars($sidebarTagline) ?></span>
         </div>
+        <button type="button" class="sidebar-close-btn" id="sidebarCloseBtn" aria-label="Close Navigation">
+            <svg width="22" height="22" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+        </button>
     </div>
 
     <nav class="sidebar-nav">

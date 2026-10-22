@@ -39,6 +39,7 @@ $dbDriver = db()->getDriver();
 </head>
 <body>
 <div class="app-layout">
+    <div class="sidebar-backdrop" id="sidebarBackdrop"></div>
     <?php require __DIR__ . '/sidebar.php'; ?>
 
     <main class="main-content">
