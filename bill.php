@@ -469,6 +469,91 @@ $waDirectUrl = $cleanPhone
             text-align: center;
         }
 
+        /* Mobile Responsiveness for Smart Phones */
+        @media (max-width: 640px) {
+            body {
+                padding: 10px 8px 30px;
+            }
+            .actions-card {
+                padding: 12px;
+                flex-direction: column;
+                align-items: stretch;
+                gap: 10px;
+            }
+            .actions-btn-group {
+                display: grid;
+                grid-template-columns: 1fr 1fr;
+                gap: 8px;
+            }
+            .btn-wa-share {
+                grid-column: 1 / -1;
+                justify-content: center;
+                padding: 11px;
+            }
+            .btn-action {
+                justify-content: center;
+                padding: 9px;
+            }
+            .invoice-card {
+                padding: 16px 12px;
+                border-radius: 8px;
+                border-width: 1px;
+            }
+            .inv-top-table,
+            .inv-top-table tbody,
+            .inv-top-table tr,
+            .inv-top-table td {
+                display: block !important;
+                width: 100% !important;
+                text-align: left !important;
+                padding: 0 !important;
+            }
+            .inv-top-table tr {
+                display: flex !important;
+                flex-direction: column !important;
+                gap: 10px !important;
+            }
+            .inv-top-table td:first-child {
+                text-align: center !important;
+            }
+            .inv-top-table td:first-child img {
+                margin: 0 auto;
+            }
+            .inv-top-table td:nth-child(2) {
+                text-align: center !important;
+                padding-left: 0 !important;
+            }
+            .inv-top-table td:last-child {
+                text-align: center !important;
+                border-top: 1px dashed #cbd5e1;
+                padding-top: 8px !important;
+            }
+            .invoice-title-band {
+                flex-direction: column;
+                gap: 4px;
+                text-align: center;
+            }
+            .party-grid {
+                grid-template-columns: 1fr !important;
+            }
+            .party-col:first-child {
+                border-right: none !important;
+                border-bottom: 1px solid #cbd5e1 !important;
+            }
+            .summary-grid {
+                grid-template-columns: 1fr !important;
+                gap: 12px !important;
+            }
+            .footer-grid {
+                grid-template-columns: 1fr !important;
+                gap: 14px !important;
+            }
+            .sign-box {
+                align-items: center !important;
+                text-align: center !important;
+            }
+        }
+
         /* Print Mode */
         @media print {
             .no-print { display: none !important; }
@@ -594,7 +679,8 @@ $waDirectUrl = $cleanPhone
         </div>
 
         <!-- Line Items Table -->
-        <table class="inv-table">
+        <div style="width:100%; overflow-x:auto; -webkit-overflow-scrolling:touch; margin-bottom:16px;">
+        <table class="inv-table" style="min-width: 560px; margin-bottom: 0;">
             <thead>
                 <tr>
                     <th style="width:30px;" class="text-center">#</th>
@@ -653,6 +739,7 @@ $waDirectUrl = $cleanPhone
                 <?php endforeach; ?>
             </tbody>
         </table>
+        </div>
 
         <!-- Calculations & Summary Grid -->
         <div class="summary-grid">

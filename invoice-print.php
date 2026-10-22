@@ -25,8 +25,21 @@ $html = InvoicePdfGenerator::generateHtml($invoice, $settings);
 <html lang="en">
 <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Print <?= htmlspecialchars($invoice['invoiceNumber']) ?> — Samrajya Mens Wear</title>
     <style>
+        @media (max-width: 640px) {
+            .print-toolbar {
+                position: static !important;
+                margin: 10px;
+                justify-content: center;
+            }
+            .invoice-wrapper {
+                margin: 10px !important;
+                padding: 14px 10px !important;
+                overflow-x: auto;
+            }
+        }
         @media print {
             .no-print {
                 display: none !important;
