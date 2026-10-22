@@ -561,10 +561,11 @@
     display: flex;
     flex-direction: column;
     height: auto;
-    min-height: calc(100vh - var(--topbar-height));
+    min-height: calc(100vh - var(--topbar-height) - env(safe-area-inset-top, 0px));
+    min-height: calc(100dvh - var(--topbar-height) - env(safe-area-inset-top, 0px));
     overflow: visible;
     position: relative;
-    padding-bottom: 76px; /* Avoid floating bar overlapping content */
+    padding-bottom: calc(90px + env(safe-area-inset-bottom, 0px)) !important; /* Space for iPhone home bar */
     background: #f1f5f3;
   }
 
@@ -572,7 +573,7 @@
   .pos-mobile-nav {
     display: flex !important;
     position: sticky;
-    top: var(--topbar-height);
+    top: calc(var(--topbar-height) + env(safe-area-inset-top, 0px));
     z-index: 45;
     background: #ffffff;
     padding: 8px 12px;
@@ -596,6 +597,9 @@
     color: var(--slate-600);
     cursor: pointer;
     transition: all 0.2s ease;
+    touch-action: manipulation;
+    -webkit-user-select: none;
+    user-select: none;
   }
 
   .pos-mobile-tab-btn svg {
@@ -631,7 +635,8 @@
 
   .pos-search-input {
     padding: 10px 14px 10px 38px;
-    font-size: 13px;
+    font-size: 16px !important; /* Prevents iPhone auto-zoom */
+    -webkit-appearance: none;
   }
 
   .pos-products-grid {
@@ -644,6 +649,8 @@
   .pos-item-card {
     padding: 10px;
     border-radius: 10px;
+    touch-action: manipulation;
+    -webkit-tap-highlight-color: transparent;
   }
 
   .pos-item-header {
@@ -677,7 +684,9 @@
   .pos-cart-panel.mobile-active {
     display: flex !important;
     flex-direction: column;
-    min-height: calc(100vh - var(--topbar-height) - 55px);
+    min-height: calc(100vh - var(--topbar-height) - 55px - env(safe-area-inset-top, 0px));
+    min-height: calc(100dvh - var(--topbar-height) - 55px - env(safe-area-inset-top, 0px));
+    padding-bottom: calc(20px + env(safe-area-inset-bottom, 0px));
   }
 
   .pos-cart-header {
@@ -696,6 +705,7 @@
     max-height: none;
     overflow-y: visible;
     padding: 8px 12px;
+    -webkit-overflow-scrolling: touch;
   }
 
   .cart-row {
@@ -719,20 +729,24 @@
   .pay-btn {
     padding: 9px 4px;
     font-size: 12px;
+    touch-action: manipulation;
+    -webkit-tap-highlight-color: transparent;
   }
 
   .btn-checkout {
     padding: 14px;
     font-size: 15px;
+    touch-action: manipulation;
+    -webkit-tap-highlight-color: transparent;
   }
 
   /* Floating Checkout Pill Bar */
   .pos-mobile-floating-bar {
     display: flex !important;
     position: fixed;
-    bottom: 14px;
-    left: 12px;
-    right: 12px;
+    bottom: calc(14px + env(safe-area-inset-bottom, 0px)) !important;
+    left: calc(12px + env(safe-area-inset-left, 0px)) !important;
+    right: calc(12px + env(safe-area-inset-right, 0px)) !important;
     z-index: 80;
     background: linear-gradient(135deg, #0f392b, #1b5e48);
     color: #ffffff;
@@ -744,6 +758,10 @@
     cursor: pointer;
     border: 1px solid rgba(255, 255, 255, 0.15);
     animation: slideUpFloat 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+    touch-action: manipulation;
+    -webkit-tap-highlight-color: transparent;
+    -webkit-user-select: none;
+    user-select: none;
   }
 
   @keyframes slideUpFloat {

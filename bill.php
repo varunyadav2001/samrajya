@@ -31,11 +31,16 @@ if (!$invoice) {
     <html lang="mr">
     <head>
         <meta charset="UTF-8">
-        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, viewport-fit=cover">
+        <meta name="apple-mobile-web-app-capable" content="yes">
+        <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+        <meta name="format-detection" content="telephone=no">
         <title>Invoice Not Found — साम्राज्य.07</title>
+        <link rel="icon" type="image/png" href="assets/images/logo.png">
+        <link rel="apple-touch-icon" href="assets/images/logo.png">
         <link rel="stylesheet" href="assets/css/style.css">
     </head>
-    <body style="background:#f1f5f9; display:flex; align-items:center; justify-content:center; min-height:100vh; padding:20px; font-family:sans-serif;">
+    <body style="background:#f1f5f9; display:flex; align-items:center; justify-content:center; min-height:100vh; min-height:100dvh; padding:calc(20px + env(safe-area-inset-top, 0px)) calc(16px + env(safe-area-inset-right, 0px)) calc(20px + env(safe-area-inset-bottom, 0px)) calc(16px + env(safe-area-inset-left, 0px)); font-family:sans-serif;">
         <div style="background:#fff; border-radius:12px; padding:40px; text-align:center; max-width:440px; box-shadow:0 4px 20px rgba(0,0,0,0.08); border:1px solid #e2e8f0;">
             <img src="assets/images/logo.png" alt="साम्राज्य.07" style="width:76px; height:76px; border-radius:50%; margin:0 auto 16px; border:2px solid #f59e0b;">
             <h3 style="color:#0f392b; font-size:18px; margin-bottom:8px;">बिल सापडले नाही (Invoice Not Found)</h3>
@@ -135,9 +140,13 @@ $waDirectUrl = $cleanPhone
 <html lang="mr">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, viewport-fit=cover">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="format-detection" content="telephone=no">
     <title>Bill <?= htmlspecialchars($invoice['invoiceNumber']) ?> — <?= htmlspecialchars($shopName) ?></title>
     <link rel="icon" type="image/png" href="assets/images/logo.png">
+    <link rel="apple-touch-icon" href="assets/images/logo.png">
     
     <!-- Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -160,9 +169,11 @@ $waDirectUrl = $cleanPhone
         body {
             background-color: #eef2f6;
             margin: 0;
-            padding: 20px 10px 40px;
+            padding: calc(14px + env(safe-area-inset-top, 0px)) calc(10px + env(safe-area-inset-right, 0px)) calc(30px + env(safe-area-inset-bottom, 0px)) calc(10px + env(safe-area-inset-left, 0px));
             font-family: 'Plus Jakarta Sans', sans-serif;
             color: #0f172a;
+            min-height: 100vh;
+            min-height: 100dvh;
         }
         .bill-container {
             max-width: 820px;

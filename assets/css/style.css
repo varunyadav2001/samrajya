@@ -46,6 +46,7 @@
   margin: 0;
   padding: 0;
   box-sizing: border-box;
+  -webkit-tap-highlight-color: transparent;
 }
 
 body {
@@ -54,7 +55,10 @@ body {
   color: var(--slate-800);
   line-height: 1.5;
   min-height: 100vh;
+  min-height: 100dvh;
   display: flex;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
 
 /* Layout */
@@ -62,6 +66,7 @@ body {
   display: flex;
   width: 100%;
   min-height: 100vh;
+  min-height: 100dvh;
 }
 
 .sidebar {
@@ -685,6 +690,9 @@ body {
     z-index: 1000;
     box-shadow: 0 0 30px rgba(0, 0, 0, 0.4);
     width: 280px;
+    padding-top: calc(10px + env(safe-area-inset-top, 0px));
+    padding-bottom: calc(20px + env(safe-area-inset-bottom, 0px));
+    padding-left: env(safe-area-inset-left, 0px);
   }
 
   .sidebar.open {
@@ -693,6 +701,7 @@ body {
 
   .sidebar-close-btn {
     display: flex;
+    touch-action: manipulation;
   }
 
   .main-content {
@@ -704,14 +713,18 @@ body {
     display: inline-flex !important;
     align-items: center;
     justify-content: center;
+    touch-action: manipulation;
   }
 
   .topbar {
-    padding: 0 16px;
+    padding-top: env(safe-area-inset-top, 0px);
+    padding-left: calc(16px + env(safe-area-inset-left, 0px));
+    padding-right: calc(16px + env(safe-area-inset-right, 0px));
+    height: calc(var(--topbar-height) + env(safe-area-inset-top, 0px));
   }
 
   .page-container {
-    padding: 16px 14px;
+    padding: 16px calc(14px + env(safe-area-inset-right, 0px)) calc(24px + env(safe-area-inset-bottom, 0px)) calc(14px + env(safe-area-inset-left, 0px));
   }
 
   .dash-charts-grid,
@@ -726,6 +739,32 @@ body {
     overflow-x: auto;
     -webkit-overflow-scrolling: touch;
   }
+
+  /* CRITICAL FOR IPHONE: Prevent iOS Safari from auto-zooming when tapping inputs */
+  .form-control,
+  input[type="text"],
+  input[type="tel"],
+  input[type="number"],
+  input[type="password"],
+  input[type="search"],
+  input[type="date"],
+  select,
+  textarea {
+    font-size: 16px !important;
+    -webkit-appearance: none;
+    appearance: none;
+    border-radius: var(--radius-sm);
+  }
+
+  /* Eliminate 300ms double-tap delay on iPhones */
+  button,
+  .btn,
+  .nav-link,
+  .user-pill {
+    touch-action: manipulation;
+    -webkit-user-select: none;
+    user-select: none;
+  }
 }
 
 @media (max-width: 640px) {
@@ -734,8 +773,11 @@ body {
   }
 
   .topbar {
-    padding: 0 10px;
+    padding-top: env(safe-area-inset-top, 0px);
+    padding-left: calc(10px + env(safe-area-inset-left, 0px));
+    padding-right: calc(10px + env(safe-area-inset-right, 0px));
     gap: 8px;
+    height: calc(var(--topbar-height) + env(safe-area-inset-top, 0px));
   }
 
   .topbar-left {
@@ -808,7 +850,8 @@ body {
   .modal-dialog {
     max-width: 100% !important;
     margin: 0 !important;
-    border-radius: 16px 16px 0 0 !important;
+    border-radius: 20px 20px 0 0 !important;
+    padding-bottom: calc(20px + env(safe-area-inset-bottom, 0px)) !important;
   }
 
   .modal-backdrop {
@@ -821,15 +864,10 @@ body {
     padding: 14px;
   }
 
-  .form-control {
-    font-size: 15px;
-    padding: 10px 12px;
-  }
-
   #toastContainer {
-    left: 12px;
-    right: 12px;
-    bottom: 12px;
+    left: calc(12px + env(safe-area-inset-left, 0px));
+    right: calc(12px + env(safe-area-inset-right, 0px));
+    bottom: calc(16px + env(safe-area-inset-bottom, 0px));
   }
 
   .toast {

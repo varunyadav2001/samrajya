@@ -25,8 +25,13 @@ $html = InvoicePdfGenerator::generateHtml($invoice, $settings);
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, viewport-fit=cover">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="format-detection" content="telephone=no">
     <title>Print <?= htmlspecialchars($invoice['invoiceNumber']) ?> — Samrajya Mens Wear</title>
+    <link rel="icon" type="image/png" href="assets/images/logo.png">
+    <link rel="apple-touch-icon" href="assets/images/logo.png">
     <style>
         @media (max-width: 640px) {
             .print-toolbar {
