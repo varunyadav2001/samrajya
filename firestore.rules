@@ -1,0 +1,818 @@
+rules_version = '2';
+
+/**
+ * Samrajya Mens Wear - Production Firestore Security Rules
+ *
+ * Designed for retail billing, POS operations, inventory management,
+ * GST & Non-GST invoicing, customer management, and role-based access control.
+ *
+ * Security Model:
+ * - Default Deny: All document paths deny read and write unless explicitly allowed.
+ * - Least Privilege & RBAC: Superadmin, Admin, and Cashier tiers.
+ * - Immutability: Invoices, audit logs, and inventory movements cannot be deleted or arbitrarily altered.
+ * - Negative Value Prevention: Prices, quantities, taxes, and amounts must be non-negative.
+ * - Anti-DoS: Strict string length limits and array size caps on all inputs.
+ * - Anti-Pollution: Schema enforcement via hasOnly() on all document structures.
+ */
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // ===============================================================
+    // Assumed Data Model
+    // ===============================================================
+    //
+    // Collection: admins
+    // Document ID: {adminId} (matches Firebase Auth UID)
+    // Fields:
+    //   - uid: string (required, 1-128 chars, immutable)
+    //   - email: string (required, valid email, 5-100 chars)
+    //   - displayName: string (required, 1-100 chars)
+    //   - role: string (required, in ['superadmin', 'admin', 'cashier'])
+    //   - phoneNumber: string (optional, 0-20 chars)
+    //   - isActive: bool (required, whether account is active)
+    //   - createdAt: timestamp (required, immutable)
+    //   - updatedAt: timestamp (optional)
+    //
+    // Collection: products
+    // Document ID: {productId} (e.g. 'PRD-001' or Firestore Auto-ID)
+    // Fields:
+    //   - productId: string (required, 1-64 chars, immutable)
+    //   - name: string (required, 1-150 chars)
+    //   - sku: string (required, 1-64 chars)
+    //   - category: string (required, 1-50 chars)
+    //   - size: string (required, 1-20 chars)
+    //   - color: string (optional, 1-30 chars)
+    //   - brand: string (optional, 1-50 chars)
+    //   - costPrice: number (optional, >= 0)
+    //   - sellingPrice: number (required, >= 0)
+    //   - mrp: number (required, >= 0)
+    //   - taxRate: number (optional, >= 0 and <= 100)
+    //   - hsnCode: string (optional, 1-20 chars)
+    //   - stockQuantity: number (required, >= 0)
+    //   - minStockAlert: number (optional, >= 0)
+    //   - barcode: string (optional, 1-64 chars)
+    //   - isActive: bool (required)
+    //   - createdAt: timestamp (required, immutable)
+    //   - updatedAt: timestamp (required)
+    //
+    // Collection: customers
+    // Document ID: {customerId} (e.g. phone number or generated ID)
+    // Fields:
+    //   - customerId: string (required, 1-64 chars, immutable)
+    //   - name: string (required, 1-100 chars)
+    //   - phone: string (required, 7-20 chars)
+    //   - email: string (optional, valid email, 5-100 chars)
+    //   - address: string (optional, 1-250 chars)
+    //   - city: string (optional, 1-50 chars)
+    //   - state: string (optional, 1-50 chars)
+    //   - gstin: string (optional, 1-20 chars)
+    //   - loyaltyPoints: number (optional, >= 0)
+    //   - totalPurchases: number (optional, >= 0)
+    //   - createdAt: timestamp (required, immutable)
+    //   - updatedAt: timestamp (required)
+    //
+    // Collection: invoices
+    // Document ID: {invoiceId} (e.g. 'SMW-GST-2026-0001' or generated doc ID)
+    // Fields:
+    //   - invoiceId: string (required, 1-64 chars, immutable)
+    //   - invoiceNumber: string (required, 1-64 chars, immutable)
+    //   - invoiceType: string (required, 'gst' or 'nongst', immutable)
+    //   - customerId: string (required, 1-64 chars, immutable)
+    //   - customerName: string (required, 1-100 chars, immutable)
+    //   - customerPhone: string (optional, 1-20 chars, immutable)
+    //   - customerGstin: string (optional, 1-20 chars, immutable)
+    //   - items: list (required, 1-100 line items, immutable)
+    //   - subtotal: number (required, >= 0, immutable)
+    //   - discountAmount: number (required, >= 0, immutable)
+    //   - taxAmount: number (required, >= 0, immutable)
+    //   - totalAmount: number (required, >= 0, immutable)
+    //   - roundOff: number (optional, number, immutable)
+    //   - paymentMode: string (required, in ['cash', 'card', 'upi', 'mixed', 'credit'], immutable)
+    //   - paymentStatus: string (required, in ['paid', 'partial', 'unpaid'])
+    //   - status: string (required, in ['completed', 'cancelled', 'returned', 'partially_returned'])
+    //   - notes: string (optional, 0-500 chars)
+    //   - cashierUid: string (required, 1-128 chars, matches auth.uid, immutable)
+    //   - cashierName: string (required, 1-100 chars, immutable)
+    //   - createdAt: timestamp (required, immutable)
+    //   - updatedAt: timestamp (optional)
+    //
+    // Collection: inventory_movements
+    // Document ID: {movementId} (unique ledger movement ID)
+    // Fields:
+    //   - movementId: string (required, 1-64 chars, immutable)
+    //   - movementType: string (required, in ['sale', 'return', 'purchase', 'adjustment', 'damage', 'transfer'])
+    //   - productId: string (required, 1-64 chars)
+    //   - quantity: number (required, > 0)
+    //   - previousStock: number (required, >= 0)
+    //   - newStock: number (required, >= 0)
+    //   - referenceId: string (optional, 1-64 chars)
+    //   - referenceType: string (optional, in ['invoice', 'return', 'manual', 'purchase_order'])
+    //   - performedBy: string (required, 1-128 chars, matches auth.uid)
+    //   - performedByName: string (required, 1-100 chars)
+    //   - notes: string (optional, 0-500 chars)
+    //   - createdAt: timestamp (required)
+    //
+    // Collection: returns
+    // Document ID: {returnId} (e.g. 'SMW-RET-2026-0001' or generated ID)
+    // Fields:
+    //   - returnId: string (required, 1-64 chars, immutable)
+    //   - returnNumber: string (required, 1-64 chars, immutable)
+    //   - originalInvoiceId: string (required, 1-64 chars, immutable)
+    //   - originalInvoiceNumber: string (required, 1-64 chars, immutable)
+    //   - customerId: string (required, 1-64 chars, immutable)
+    //   - customerName: string (required, 1-100 chars)
+    //   - items: list (required, 1-50 items, immutable)
+    //   - refundAmount: number (required, >= 0, immutable)
+    //   - refundMode: string (required, in ['cash', 'upi', 'store_credit', 'exchange'])
+    //   - reason: string (required, 1-300 chars)
+    //   - status: string (required, in ['pending', 'approved', 'rejected', 'completed'])
+    //   - processedBy: string (required, 1-128 chars, matches auth.uid, immutable)
+    //   - processedByName: string (required, 1-100 chars)
+    //   - notes: string (optional, 0-500 chars)
+    //   - createdAt: timestamp (required, immutable)
+    //   - updatedAt: timestamp (optional)
+    //
+    // Collection: settings
+    // Document ID: {settingId} (e.g. 'store_config')
+    // Fields:
+    //   - storeName: string (required, 1-100 chars)
+    //   - tagline: string (optional, 1-150 chars)
+    //   - phone: string (required, 1-25 chars)
+    //   - altPhone: string (optional, 1-25 chars)
+    //   - email: string (required, valid email, 5-100 chars)
+    //   - addressLine1: string (required, 1-150 chars)
+    //   - addressLine2: string (optional, 1-150 chars)
+    //   - city: string (required, 1-50 chars)
+    //   - state: string (required, 1-50 chars)
+    //   - stateCode: string (required, 1-5 chars)
+    //   - pincode: string (required, 1-10 chars)
+    //   - isGstRegistered: bool (required)
+    //   - gstin: string (optional, 1-20 chars)
+    //   - defaultInvoiceType: string (required, 'gst' or 'nongst')
+    //   - gstInvoicePrefix: string (required, 1-20 chars)
+    //   - nongstInvoicePrefix: string (required, 1-20 chars)
+    //   - returnPrefix: string (required, 1-20 chars)
+    //   - upiId: string (optional, 1-50 chars)
+    //   - currencySymbol: string (required, 1-5 chars)
+    //   - currencyCode: string (required, 1-5 chars)
+    //   - returnPolicy: string (optional, 0-500 chars)
+    //   - invoiceFooter: string (optional, 0-500 chars)
+    //   - updatedAt: timestamp (required)
+    //   - updatedBy: string (required, 1-128 chars)
+    //
+    // Collection: counters
+    // Document ID: {counterId} (e.g. 'invoices', 'returns', 'products')
+    // Fields:
+    //   - counterId: string (required, 1-64 chars, immutable)
+    //   - currentValue: int (required, >= 0)
+    //   - prefix: string (optional, 1-20 chars, immutable)
+    //   - updatedAt: timestamp (required)
+    //   - updatedBy: string (required, 1-128 chars)
+    //
+    // Collection: audit_logs
+    // Document ID: {logId} (unique audit record ID)
+    // Fields:
+    //   - logId: string (required, 1-64 chars, immutable)
+    //   - action: string (required, 1-50 chars)
+    //   - userId: string (required, 1-128 chars, matches auth.uid)
+    //   - userName: string (required, 1-100 chars)
+    //   - userRole: string (required, in ['superadmin', 'admin', 'cashier'])
+    //   - details: map (optional, size <= 20)
+    //   - ipAddress: string (optional, 1-50 chars)
+    //   - timestamp: timestamp (required)
+    //
+    // ===============================================================
+
+    // ===============================================================
+    // Core Helper Functions
+    // ===============================================================
+
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    function isValidUid(uid) {
+      return uid is string && uid.size() >= 1 && uid.size() <= 128;
+    }
+
+    function isOwner(userId) {
+      return isAuthenticated() && request.auth.uid == userId;
+    }
+
+    function isDocOwner() {
+      return isAuthenticated() &&
+             'uid' in resource.data &&
+             request.auth.uid == resource.data.uid;
+    }
+
+    function uidUnchanged() {
+      return !('uid' in request.resource.data) ||
+             request.resource.data.uid == request.auth.uid;
+    }
+
+    function uidNotModified() {
+      return !('uid' in request.resource.data) ||
+             request.resource.data.uid == resource.data.uid;
+    }
+
+    function hasRequiredFields(data, fields) {
+      return data.keys().hasAll(fields);
+    }
+
+    function hasOnlyAllowedFields(data, fields) {
+      return data.keys().hasOnly(fields);
+    }
+
+    function areImmutableFieldsUnchanged(fields) {
+      return !request.resource.data.diff(resource.data).affectedKeys().hasAny(fields);
+    }
+
+    function isValidString(val, minLen, maxLen) {
+      return val is string &&
+             val.size() >= minLen &&
+             val.size() <= maxLen;
+    }
+
+    function isValidOptionalString(data, field, minLen, maxLen) {
+      return !(field in data) ||
+             (data[field] is string && data[field].size() >= minLen && data[field].size() <= maxLen);
+    }
+
+    function isValidEmail(email) {
+      return email is string &&
+             email.size() >= 5 &&
+             email.size() <= 100 &&
+             email.matches('^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}$');
+    }
+
+    function isValidOptionalEmail(data, field) {
+      return !(field in data) || isValidEmail(data[field]);
+    }
+
+    function isValidOptionalNumber(data, field, minVal) {
+      return !(field in data) || (data[field] is number && data[field] >= minVal);
+    }
+
+    function isValidList(listVal, minSize, maxSize) {
+      return listVal is list &&
+             listVal.size() >= minSize &&
+             listVal.size() <= maxSize;
+    }
+
+    function isValidMap(mapVal, maxKeys) {
+      return mapVal is map && mapVal.size() <= maxKeys;
+    }
+
+    // ===============================================================
+    // Role & Authorization Helpers (RBAC)
+    // ===============================================================
+
+    // Check if the current user exists in the admins collection
+    function hasAdminDoc() {
+      return isAuthenticated() &&
+             exists(/databases/$(database)/documents/admins/$(request.auth.uid));
+    }
+
+    // Retrieve the admin profile document
+    function getAdminData() {
+      return get(/databases/$(database)/documents/admins/$(request.auth.uid)).data;
+    }
+
+    // Verified bootstrap administrator emails from application configuration
+    function isBootstrapSuperAdmin() {
+      return isAuthenticated() &&
+             request.auth.token.email != null &&
+             request.auth.token.email.lower() in [
+               'admin@samrajyamenswear.com',
+               'owner@samrajya.com'
+             ];
+    }
+
+    // Superadmin: Bootstrap administrator, custom token claim, or superadmin doc role
+    function isSuperAdmin() {
+      return isAuthenticated() && (
+        isBootstrapSuperAdmin() ||
+        (request.auth.token.keys().hasAny(['role']) && request.auth.token.role == 'superadmin') ||
+        (hasAdminDoc() && getAdminData().role == 'superadmin' && getAdminData().isActive == true)
+      );
+    }
+
+    // Admin: Full store operational rights (superadmin or regular admin)
+    function isAdmin() {
+      return isAuthenticated() && (
+        isSuperAdmin() ||
+        (request.auth.token.keys().hasAny(['role']) && request.auth.token.role in ['admin', 'superadmin']) ||
+        (hasAdminDoc() && getAdminData().role in ['admin', 'superadmin'] && getAdminData().isActive == true)
+      );
+    }
+
+    // Cashier: Restricted store operations (POS checkout, returns, customer creation)
+    function isCashier() {
+      return isAuthenticated() && (
+        (request.auth.token.keys().hasAny(['role']) && request.auth.token.role == 'cashier') ||
+        (hasAdminDoc() && getAdminData().role == 'cashier' && getAdminData().isActive == true)
+      );
+    }
+
+    // Staff: Any active administrator, superadmin, or cashier
+    function isStaff() {
+      return isAdmin() || isCashier();
+    }
+
+    // ===============================================================
+    // Domain Validator Functions
+    // ===============================================================
+
+    // --- Admin Document Validator ---
+    function isValidAdminDoc(data) {
+      let allowed = ['uid', 'email', 'displayName', 'role', 'phoneNumber', 'isActive', 'createdAt', 'updatedAt'];
+      let required = ['uid', 'email', 'displayName', 'role', 'isActive', 'createdAt'];
+
+      return hasRequiredFields(data, required) &&
+             hasOnlyAllowedFields(data, allowed) &&
+             isValidUid(data.uid) &&
+             isValidEmail(data.email) &&
+             isValidString(data.displayName, 1, 100) &&
+             data.role in ['superadmin', 'admin', 'cashier'] &&
+             data.isActive is bool &&
+             data.createdAt is timestamp &&
+             isValidOptionalString(data, 'phoneNumber', 0, 20) &&
+             (!( 'updatedAt' in data ) || data.updatedAt is timestamp);
+    }
+
+    // --- Product Validator ---
+    function isValidProduct(data) {
+      let allowed = [
+        'productId', 'name', 'sku', 'category', 'size', 'color', 'brand',
+        'costPrice', 'sellingPrice', 'mrp', 'taxRate', 'hsnCode',
+        'stockQuantity', 'minStockAlert', 'barcode', 'isActive', 'createdAt', 'updatedAt'
+      ];
+      let required = [
+        'productId', 'name', 'sku', 'category', 'size',
+        'sellingPrice', 'mrp', 'stockQuantity', 'isActive', 'createdAt', 'updatedAt'
+      ];
+
+      return hasRequiredFields(data, required) &&
+             hasOnlyAllowedFields(data, allowed) &&
+             isValidString(data.productId, 1, 64) &&
+             isValidString(data.name, 1, 150) &&
+             isValidString(data.sku, 1, 64) &&
+             isValidString(data.category, 1, 50) &&
+             isValidString(data.size, 1, 20) &&
+             isValidOptionalString(data, 'color', 1, 30) &&
+             isValidOptionalString(data, 'brand', 1, 50) &&
+             isValidOptionalNumber(data, 'costPrice', 0) &&
+             data.sellingPrice is number && data.sellingPrice >= 0 &&
+             data.mrp is number && data.mrp >= 0 &&
+             (!( 'taxRate' in data ) || (data.taxRate is number && data.taxRate >= 0 && data.taxRate <= 100)) &&
+             isValidOptionalString(data, 'hsnCode', 1, 20) &&
+             data.stockQuantity is number && data.stockQuantity >= 0 &&
+             isValidOptionalNumber(data, 'minStockAlert', 0) &&
+             isValidOptionalString(data, 'barcode', 1, 64) &&
+             data.isActive is bool &&
+             data.createdAt is timestamp &&
+             data.updatedAt is timestamp;
+    }
+
+    // --- Customer Validator ---
+    function isValidCustomer(data) {
+      let allowed = [
+        'customerId', 'name', 'phone', 'email', 'address',
+        'city', 'state', 'gstin', 'loyaltyPoints', 'totalPurchases',
+        'createdAt', 'updatedAt'
+      ];
+      let required = ['customerId', 'name', 'phone', 'createdAt', 'updatedAt'];
+
+      return hasRequiredFields(data, required) &&
+             hasOnlyAllowedFields(data, allowed) &&
+             isValidString(data.customerId, 1, 64) &&
+             isValidString(data.name, 1, 100) &&
+             isValidString(data.phone, 7, 20) &&
+             isValidOptionalEmail(data, 'email') &&
+             isValidOptionalString(data, 'address', 1, 250) &&
+             isValidOptionalString(data, 'city', 1, 50) &&
+             isValidOptionalString(data, 'state', 1, 50) &&
+             isValidOptionalString(data, 'gstin', 1, 20) &&
+             isValidOptionalNumber(data, 'loyaltyPoints', 0) &&
+             isValidOptionalNumber(data, 'totalPurchases', 0) &&
+             data.createdAt is timestamp &&
+             data.updatedAt is timestamp;
+    }
+
+    // --- Invoice Validator ---
+    function isValidInvoice(data) {
+      let allowed = [
+        'invoiceId', 'invoiceNumber', 'invoiceType', 'customerId', 'customerName',
+        'customerPhone', 'customerGstin', 'items', 'subtotal', 'discountAmount',
+        'taxAmount', 'totalAmount', 'roundOff', 'paymentMode', 'paymentStatus',
+        'status', 'notes', 'cashierUid', 'cashierName', 'createdAt', 'updatedAt'
+      ];
+      let required = [
+        'invoiceId', 'invoiceNumber', 'invoiceType', 'customerId', 'customerName',
+        'items', 'subtotal', 'discountAmount', 'taxAmount', 'totalAmount',
+        'paymentMode', 'paymentStatus', 'status', 'cashierUid', 'cashierName', 'createdAt'
+      ];
+
+      return hasRequiredFields(data, required) &&
+             hasOnlyAllowedFields(data, allowed) &&
+             isValidString(data.invoiceId, 1, 64) &&
+             isValidString(data.invoiceNumber, 1, 64) &&
+             data.invoiceType in ['gst', 'nongst'] &&
+             isValidString(data.customerId, 1, 64) &&
+             isValidString(data.customerName, 1, 100) &&
+             isValidOptionalString(data, 'customerPhone', 1, 20) &&
+             isValidOptionalString(data, 'customerGstin', 1, 20) &&
+             isValidList(data.items, 1, 100) &&
+             data.subtotal is number && data.subtotal >= 0 &&
+             data.discountAmount is number && data.discountAmount >= 0 &&
+             data.taxAmount is number && data.taxAmount >= 0 &&
+             data.totalAmount is number && data.totalAmount >= 0 &&
+             (!( 'roundOff' in data ) || data.roundOff is number) &&
+             data.paymentMode in ['cash', 'card', 'upi', 'mixed', 'credit'] &&
+             data.paymentStatus in ['paid', 'partial', 'unpaid'] &&
+             data.status in ['completed', 'cancelled', 'returned', 'partially_returned'] &&
+             isValidOptionalString(data, 'notes', 0, 500) &&
+             isValidUid(data.cashierUid) &&
+             isValidString(data.cashierName, 1, 100) &&
+             data.createdAt is timestamp &&
+             (!( 'updatedAt' in data ) || data.updatedAt is timestamp);
+    }
+
+    // --- Inventory Movement Validator ---
+    function isValidInventoryMovement(data) {
+      let allowed = [
+        'movementId', 'movementType', 'productId', 'quantity', 'previousStock',
+        'newStock', 'referenceId', 'referenceType', 'performedBy', 'performedByName',
+        'notes', 'createdAt'
+      ];
+      let required = [
+        'movementId', 'movementType', 'productId', 'quantity', 'previousStock',
+        'newStock', 'performedBy', 'performedByName', 'createdAt'
+      ];
+
+      return hasRequiredFields(data, required) &&
+             hasOnlyAllowedFields(data, allowed) &&
+             isValidString(data.movementId, 1, 64) &&
+             data.movementType in ['sale', 'return', 'purchase', 'adjustment', 'damage', 'transfer'] &&
+             isValidString(data.productId, 1, 64) &&
+             data.quantity is number && data.quantity > 0 &&
+             data.previousStock is number && data.previousStock >= 0 &&
+             data.newStock is number && data.newStock >= 0 &&
+             isValidOptionalString(data, 'referenceId', 1, 64) &&
+             (!( 'referenceType' in data ) || data.referenceType in ['invoice', 'return', 'manual', 'purchase_order']) &&
+             isValidUid(data.performedBy) &&
+             isValidString(data.performedByName, 1, 100) &&
+             isValidOptionalString(data, 'notes', 0, 500) &&
+             data.createdAt is timestamp;
+    }
+
+    // --- Return Validator ---
+    function isValidReturn(data) {
+      let allowed = [
+        'returnId', 'returnNumber', 'originalInvoiceId', 'originalInvoiceNumber',
+        'customerId', 'customerName', 'items', 'refundAmount', 'refundMode',
+        'reason', 'status', 'processedBy', 'processedByName', 'notes',
+        'createdAt', 'updatedAt'
+      ];
+      let required = [
+        'returnId', 'returnNumber', 'originalInvoiceId', 'originalInvoiceNumber',
+        'customerId', 'customerName', 'items', 'refundAmount', 'refundMode',
+        'reason', 'status', 'processedBy', 'processedByName', 'createdAt'
+      ];
+
+      return hasRequiredFields(data, required) &&
+             hasOnlyAllowedFields(data, allowed) &&
+             isValidString(data.returnId, 1, 64) &&
+             isValidString(data.returnNumber, 1, 64) &&
+             isValidString(data.originalInvoiceId, 1, 64) &&
+             isValidString(data.originalInvoiceNumber, 1, 64) &&
+             isValidString(data.customerId, 1, 64) &&
+             isValidString(data.customerName, 1, 100) &&
+             isValidList(data.items, 1, 50) &&
+             data.refundAmount is number && data.refundAmount >= 0 &&
+             data.refundMode in ['cash', 'upi', 'store_credit', 'exchange'] &&
+             isValidString(data.reason, 1, 300) &&
+             data.status in ['pending', 'approved', 'rejected', 'completed'] &&
+             isValidUid(data.processedBy) &&
+             isValidString(data.processedByName, 1, 100) &&
+             isValidOptionalString(data, 'notes', 0, 500) &&
+             data.createdAt is timestamp &&
+             (!( 'updatedAt' in data ) || data.updatedAt is timestamp);
+    }
+
+    // --- Settings Validator ---
+    function isValidSettings(data) {
+      let allowed = [
+        'storeName', 'tagline', 'phone', 'altPhone', 'email', 'addressLine1',
+        'addressLine2', 'city', 'state', 'stateCode', 'pincode', 'isGstRegistered',
+        'gstin', 'defaultInvoiceType', 'gstInvoicePrefix', 'nongstInvoicePrefix',
+        'returnPrefix', 'upiId', 'currencySymbol', 'currencyCode', 'returnPolicy',
+        'invoiceFooter', 'updatedAt', 'updatedBy'
+      ];
+      let required = [
+        'storeName', 'phone', 'email', 'addressLine1', 'city', 'state',
+        'stateCode', 'pincode', 'isGstRegistered', 'defaultInvoiceType',
+        'gstInvoicePrefix', 'nongstInvoicePrefix', 'returnPrefix',
+        'currencySymbol', 'currencyCode', 'updatedAt', 'updatedBy'
+      ];
+
+      return hasRequiredFields(data, required) &&
+             hasOnlyAllowedFields(data, allowed) &&
+             isValidString(data.storeName, 1, 100) &&
+             isValidOptionalString(data, 'tagline', 1, 150) &&
+             isValidString(data.phone, 1, 25) &&
+             isValidOptionalString(data, 'altPhone', 1, 25) &&
+             isValidEmail(data.email) &&
+             isValidString(data.addressLine1, 1, 150) &&
+             isValidOptionalString(data, 'addressLine2', 1, 150) &&
+             isValidString(data.city, 1, 50) &&
+             isValidString(data.state, 1, 50) &&
+             isValidString(data.stateCode, 1, 5) &&
+             isValidString(data.pincode, 1, 10) &&
+             data.isGstRegistered is bool &&
+             isValidOptionalString(data, 'gstin', 1, 20) &&
+             data.defaultInvoiceType in ['gst', 'nongst'] &&
+             isValidString(data.gstInvoicePrefix, 1, 20) &&
+             isValidString(data.nongstInvoicePrefix, 1, 20) &&
+             isValidString(data.returnPrefix, 1, 20) &&
+             isValidOptionalString(data, 'upiId', 1, 50) &&
+             isValidString(data.currencySymbol, 1, 5) &&
+             isValidString(data.currencyCode, 1, 5) &&
+             isValidOptionalString(data, 'returnPolicy', 0, 500) &&
+             isValidOptionalString(data, 'invoiceFooter', 0, 500) &&
+             data.updatedAt is timestamp &&
+             isValidUid(data.updatedBy);
+    }
+
+    // --- Counter Validator ---
+    function isValidCounter(data) {
+      let allowed = ['counterId', 'currentValue', 'prefix', 'updatedAt', 'updatedBy'];
+      let required = ['counterId', 'currentValue', 'updatedAt', 'updatedBy'];
+
+      return hasRequiredFields(data, required) &&
+             hasOnlyAllowedFields(data, allowed) &&
+             isValidString(data.counterId, 1, 64) &&
+             data.currentValue is int && data.currentValue >= 0 &&
+             isValidOptionalString(data, 'prefix', 1, 20) &&
+             data.updatedAt is timestamp &&
+             isValidUid(data.updatedBy);
+    }
+
+    // Strict atomic increment for non-admin staff during checkout
+    function isValidCounterIncrement() {
+      return request.resource.data.diff(resource.data).affectedKeys().hasOnly(['currentValue', 'updatedAt', 'updatedBy']) &&
+             request.resource.data.currentValue == resource.data.currentValue + 1 &&
+             request.resource.data.updatedBy == request.auth.uid;
+    }
+
+    // --- Audit Log Validator ---
+    function isValidAuditLog(data) {
+      let allowed = ['logId', 'action', 'userId', 'userName', 'userRole', 'details', 'ipAddress', 'timestamp'];
+      let required = ['logId', 'action', 'userId', 'userName', 'userRole', 'timestamp'];
+
+      return hasRequiredFields(data, required) &&
+             hasOnlyAllowedFields(data, allowed) &&
+             isValidString(data.logId, 1, 64) &&
+             isValidString(data.action, 1, 50) &&
+             isValidUid(data.userId) &&
+             isValidString(data.userName, 1, 100) &&
+             data.userRole in ['superadmin', 'admin', 'cashier'] &&
+             (!( 'details' in data ) || isValidMap(data.details, 20)) &&
+             isValidOptionalString(data, 'ipAddress', 1, 50) &&
+             data.timestamp is timestamp;
+    }
+
+    // ===============================================================
+    // Collection Security Rules
+    // ===============================================================
+
+    // ---------------------------------------------------------------
+    // 1. Admins Collection
+    // ---------------------------------------------------------------
+    match /admins/{adminId} {
+      // User can only read their own admin doc, or superadmin can read any admin doc.
+      // Strictly protects PII and admin credentials from other staff.
+      allow read: if isAuthenticated() && (request.auth.uid == adminId || isSuperAdmin());
+
+      // Only superadmin can create administrator records.
+      allow create: if isSuperAdmin() &&
+                       isValidAdminDoc(request.resource.data) &&
+                       request.resource.data.uid == adminId;
+
+      // Only superadmin can update administrator records (users cannot self-escalate roles).
+      // UID and createdAt are immutable.
+      allow update: if isSuperAdmin() &&
+                       isValidAdminDoc(request.resource.data) &&
+                       areImmutableFieldsUnchanged(['uid', 'createdAt']);
+
+      // Only superadmin can delete admin records (cannot delete self to prevent lockout).
+      allow delete: if isSuperAdmin() && request.auth.uid != adminId;
+    }
+
+    // ---------------------------------------------------------------
+    // 2. Products Collection
+    // ---------------------------------------------------------------
+    match /products/{productId} {
+      // All staff (admins, cashiers) can view product catalog and stock for POS checkout.
+      allow read: if isStaff();
+
+      // Only admins can add new products.
+      allow create: if isAdmin() &&
+                       isValidProduct(request.resource.data) &&
+                       request.resource.data.productId == productId;
+
+      // Only admins can update products (pricing, descriptions, stock adjustments).
+      // Product ID and createdAt cannot be modified.
+      allow update: if isAdmin() &&
+                       isValidProduct(request.resource.data) &&
+                       areImmutableFieldsUnchanged(['productId', 'createdAt']);
+
+      // Only admins can delete products from the catalog.
+      allow delete: if isAdmin();
+    }
+
+    // ---------------------------------------------------------------
+    // 3. Customers Collection
+    // ---------------------------------------------------------------
+    match /customers/{customerId} {
+      // All staff can look up customers for billing and loyalty.
+      allow read: if isStaff();
+
+      // All staff (including cashiers) can register new customers at checkout.
+      allow create: if isStaff() &&
+                       isValidCustomer(request.resource.data) &&
+                       request.resource.data.customerId == customerId;
+
+      // All staff can update customer profiles (phone, address, loyalty points).
+      // Customer ID and createdAt cannot be changed.
+      allow update: if isStaff() &&
+                       isValidCustomer(request.resource.data) &&
+                       areImmutableFieldsUnchanged(['customerId', 'createdAt']);
+
+      // Only admins can delete customer records (cashiers cannot delete customer history).
+      allow delete: if isAdmin();
+    }
+
+    // ---------------------------------------------------------------
+    // 4. Invoices Collection
+    // ---------------------------------------------------------------
+    match /invoices/{invoiceId} {
+      // All staff can view invoices for POS receipt reprint, lookups, and audit.
+      allow read: if isStaff();
+
+      // All staff (cashiers, admins) can create invoices.
+      // Must set cashierUid to their authenticated UID.
+      allow create: if isStaff() &&
+                       isValidInvoice(request.resource.data) &&
+                       request.resource.data.invoiceId == invoiceId &&
+                       request.resource.data.cashierUid == request.auth.uid;
+
+      // STRICT LOCKDOWN ON UPDATES:
+      // Once created, prevent arbitrary changes or tampering with financial numbers.
+      // Line items, prices, discounts, taxes, totals, invoice numbers, and cashier attribution
+      // are PERMANENTLY IMMUTABLE.
+      // Only status, updatedAt, and notes can be modified.
+      // Returns MUST create separate documents in the 'returns' collection.
+      allow update: if isStaff() &&
+                       isValidInvoice(request.resource.data) &&
+                       areImmutableFieldsUnchanged([
+                         'invoiceId', 'invoiceNumber', 'invoiceType',
+                         'customerId', 'customerName', 'customerPhone', 'customerGstin',
+                         'items', 'subtotal', 'discountAmount', 'taxAmount', 'totalAmount',
+                         'paymentMode', 'cashierUid', 'cashierName', 'createdAt'
+                       ]) &&
+                       request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status', 'updatedAt', 'notes']) &&
+                       (
+                         // Admins can cancel or mark returned
+                         (isAdmin() && request.resource.data.status in ['cancelled', 'returned', 'partially_returned']) ||
+                         // Cashiers can only mark returned or partially_returned when processing a return
+                         (isCashier() && request.resource.data.status in ['returned', 'partially_returned'])
+                       );
+
+      // PROHIBITED: Invoices can NEVER be deleted (strict financial record compliance).
+      allow delete: if false;
+    }
+
+    // ---------------------------------------------------------------
+    // 5. Inventory Movements Collection
+    // ---------------------------------------------------------------
+    match /inventory_movements/{movementId} {
+      // All staff can view stock movement history.
+      allow read: if isStaff();
+
+      // All staff can record stock movements (sales during checkout, returns, restock).
+      allow create: if isStaff() &&
+                       isValidInventoryMovement(request.resource.data) &&
+                       request.resource.data.movementId == movementId &&
+                       request.resource.data.performedBy == request.auth.uid;
+
+      // PROHIBITED: Inventory movements form an immutable audit ledger.
+      allow update: if false;
+      allow delete: if false;
+    }
+
+    // ---------------------------------------------------------------
+    // 6. Returns Collection
+    // ---------------------------------------------------------------
+    match /returns/{returnId} {
+      // All staff can view return records.
+      allow read: if isStaff();
+
+      // All staff can create return records referencing an original invoice.
+      allow create: if isStaff() &&
+                       isValidReturn(request.resource.data) &&
+                       request.resource.data.returnId == returnId &&
+                       request.resource.data.processedBy == request.auth.uid;
+
+      // Only admins can update return status (approve/reject/complete) or notes.
+      // Core financial figures, original invoice reference, and items are immutable.
+      allow update: if isAdmin() &&
+                       isValidReturn(request.resource.data) &&
+                       areImmutableFieldsUnchanged([
+                         'returnId', 'returnNumber', 'originalInvoiceId', 'originalInvoiceNumber',
+                         'customerId', 'items', 'refundAmount', 'processedBy', 'createdAt'
+                       ]) &&
+                       request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status', 'updatedAt', 'notes']);
+
+      // PROHIBITED: Returns are legal tax and credit documents and cannot be deleted.
+      allow delete: if false;
+    }
+
+    // ---------------------------------------------------------------
+    // 7. Settings Collection
+    // ---------------------------------------------------------------
+    match /settings/{settingId} {
+      // All staff can read store configuration for receipt printing and UI info.
+      allow read: if isStaff();
+
+      // Only admins can configure store details, tax info, and invoice numbering.
+      allow create: if isAdmin() &&
+                       isValidSettings(request.resource.data) &&
+                       request.resource.data.updatedBy == request.auth.uid;
+
+      // Only admins can update store settings.
+      allow update: if isAdmin() &&
+                       isValidSettings(request.resource.data) &&
+                       request.resource.data.updatedBy == request.auth.uid;
+
+      // PROHIBITED: Store settings must never be deleted.
+      allow delete: if false;
+    }
+
+    // ---------------------------------------------------------------
+    // 8. Counters Collection
+    // ---------------------------------------------------------------
+    match /counters/{counterId} {
+      // All staff can read counters to obtain the next sequential invoice or return number.
+      allow read: if isStaff();
+
+      // Only admins can initialize counters.
+      allow create: if isAdmin() &&
+                       isValidCounter(request.resource.data) &&
+                       request.resource.data.counterId == counterId &&
+                       request.resource.data.updatedBy == request.auth.uid;
+
+      // Admins have full counter management rights;
+      // Cashiers can only perform atomic +1 increments during billing/returns.
+      allow update: if isStaff() &&
+                       isValidCounter(request.resource.data) &&
+                       areImmutableFieldsUnchanged(['counterId']) &&
+                       (
+                         isAdmin() ||
+                         (isCashier() && isValidCounterIncrement())
+                       );
+
+      // Only admins can delete counters.
+      allow delete: if isAdmin();
+    }
+
+    // ---------------------------------------------------------------
+    // 9. Audit Logs Collection
+    // ---------------------------------------------------------------
+    match /audit_logs/{logId} {
+      // Only admins can review security and operational audit logs.
+      // Cashiers CANNOT inspect audit logs.
+      allow read: if isAdmin();
+
+      // All staff can append audit log records for actions they perform.
+      // Must attribute the log entry to their own authenticated UID.
+      allow create: if isStaff() &&
+                       isValidAuditLog(request.resource.data) &&
+                       request.resource.data.logId == logId &&
+                       request.resource.data.userId == request.auth.uid;
+
+      // PROHIBITED: Audit logs are strictly tamper-proof and immutable.
+      allow update: if false;
+      allow delete: if false;
+    }
+
+    // ---------------------------------------------------------------
+    // 10. Default Deny Fallback
+    // ---------------------------------------------------------------
+    // Any collections or subcollections not explicitly declared above are denied by default.
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

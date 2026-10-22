@@ -1,0 +1,24 @@
+# Composer dependencies
+/vendor/
+
+# Environment and sensitive credentials
+config/config.php
+config/firebase-service-account.json
+*.key
+*.pem
+.env
+
+# Storage and generated data
+/storage/invoices/*.pdf
+/storage/logs/*.log
+/storage/data/*.sqlite
+/storage/data/*.sqlite-journal
+/storage/data/.token_cache_*.json
+!/storage/invoices/.gitkeep
+!/storage/logs/.gitkeep
+!/storage/data/.gitkeep
+
+# OS files
+Thumbs.db
+.DS_Store
+*.tmp
