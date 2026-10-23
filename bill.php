@@ -568,12 +568,17 @@ $waDirectUrl = $cleanPhone
         /* Print Mode */
         @media print {
             .no-print { display: none !important; }
-            body { padding: 0; background: #fff; }
+            body { padding: 0; background: #fff !important; }
+            @page {
+                margin: 8mm 10mm;
+                size: A4 portrait;
+            }
             .invoice-card {
-                border: 1px solid #000;
+                border: 1px solid #cbd5e1;
                 box-shadow: none;
                 padding: 15px;
                 max-width: 100%;
+                width: 100%;
             }
         }
     </style>

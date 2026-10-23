@@ -111,10 +111,10 @@ require __DIR__ . '/includes/header.php';
             <div class="customer-inputs-container">
                 <div class="customer-inputs">
                     <div style="flex:1; position:relative;">
-                        <input type="tel" id="customerPhone" class="form-control" placeholder="Mobile (10 digits)" maxlength="10" autocomplete="off" style="font-size:12.5px; padding:6px 10px; width:100%;">
+                        <input type="tel" id="customerPhone" class="form-control" placeholder="Mobile (10 digits)" maxlength="10" autocomplete="off" style="width:100%;">
                     </div>
                     <div style="flex:1.3; position:relative;">
-                        <input type="text" id="customerName" class="form-control" placeholder="Customer Name (ग्राहकाचे नाव)" autocomplete="off" style="font-size:12.5px; padding:6px 10px; width:100%;">
+                        <input type="text" id="customerName" class="form-control" placeholder="Customer Name (ग्राहकाचे नाव)" autocomplete="off" style="width:100%;">
                     </div>
                 </div>
 

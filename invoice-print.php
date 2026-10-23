@@ -34,15 +34,31 @@ $html = InvoicePdfGenerator::generateHtml($invoice, $settings);
     <link rel="apple-touch-icon" href="assets/images/logo.png">
     <style>
         @media (max-width: 640px) {
+            body {
+                padding-top: calc(54px + env(safe-area-inset-top, 0px)) !important;
+                background: #eef2f6 !important;
+            }
             .print-toolbar {
-                position: static !important;
-                margin: 10px;
-                justify-content: center;
+                position: fixed !important;
+                top: env(safe-area-inset-top, 0px) !important;
+                left: 0 !important;
+                right: 0 !important;
+                margin: 0 !important;
+                justify-content: space-around !important;
+                border-radius: 0 0 10px 10px !important;
+                padding: 8px 10px !important;
+                z-index: 9999 !important;
+            }
+            .toolbar-btn {
+                padding: 6px 10px !important;
+                font-size: 11.5px !important;
             }
             .invoice-wrapper {
-                margin: 10px !important;
+                margin: 10px auto !important;
                 padding: 14px 10px !important;
-                overflow-x: auto;
+                overflow-x: auto !important;
+                -webkit-overflow-scrolling: touch;
+                border-radius: 8px !important;
             }
         }
         @media print {
@@ -53,6 +69,18 @@ $html = InvoicePdfGenerator::generateHtml($invoice, $settings);
                 margin: 0;
                 padding: 0;
                 background: #fff;
+            }
+            @page {
+                margin: 8mm 10mm;
+                size: A4 portrait;
+            }
+            .invoice-wrapper {
+                margin: 0 !important;
+                padding: 0 !important;
+                box-shadow: none !important;
+                border: none !important;
+                max-width: 100% !important;
+                width: 100% !important;
             }
         }
         .print-toolbar {
@@ -94,15 +122,6 @@ $html = InvoicePdfGenerator::generateHtml($invoice, $settings);
             box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
             border: 1px solid #e2e8f0;
             border-radius: 6px;
-        }
-        @media print {
-            .invoice-wrapper {
-                margin: 0;
-                padding: 0;
-                box-shadow: none;
-                border: none;
-                max-width: 100%;
-            }
         }
     </style>
 </head>
