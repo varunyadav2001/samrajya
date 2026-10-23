@@ -22,17 +22,41 @@ class FirestoreClient {
     public function __construct(array $config) {
         $serviceAccountPath = $config['service_account_path'] ?? '';
         $this->projectId = $config['project_id'] ?? '';
-        $this->cacheFile = (defined('STORAGE_PATH') ? STORAGE_PATH : (APP_ROOT . '/storage')) . '/data/.token_cache_' . md5($this->projectId) . '.json';
+        $this->cacheFile = (defined('STORAGE_PATH') ? STORAGE_PATH : (APP_ROOT . '/storage')) . '/data/.token_cache_' . md5($this->projectId ?: 'default') . '.json';
 
+        $json = null;
         if (!empty($serviceAccountPath) && file_exists($serviceAccountPath)) {
             $json = json_decode(file_get_contents($serviceAccountPath), true);
-            if (is_array($json)) {
-                $this->clientEmail = $json['client_email'] ?? null;
-                $this->privateKey = $json['private_key'] ?? null;
-                $this->tokenUri = $json['token_uri'] ?? 'https://oauth2.googleapis.com/token';
-                if (empty($this->projectId) && !empty($json['project_id'])) {
-                    $this->projectId = $json['project_id'];
+        } elseif (file_exists(APP_ROOT . '/config/firebase-service-account.json')) {
+            $json = json_decode(file_get_contents(APP_ROOT . '/config/firebase-service-account.json'), true);
+        } elseif (file_exists(APP_ROOT . '/config/firebase-credentials.enc')) {
+            $encContent = trim(file_get_contents(APP_ROOT . '/config/firebase-credentials.enc'));
+            $dec = base64_decode($encContent);
+            if ($dec) {
+                $json = json_decode($dec, true);
+            }
+        }
+
+        if (empty($json)) {
+            $envVal = getenv('FIREBASE_SERVICE_ACCOUNT') ?: ($_ENV['FIREBASE_SERVICE_ACCOUNT'] ?? ($_SERVER['FIREBASE_SERVICE_ACCOUNT'] ?? ''));
+            if (!empty($envVal)) {
+                $parsed = json_decode($envVal, true) ?: json_decode(base64_decode($envVal), true);
+                if (is_array($parsed)) {
+                    $json = $parsed;
                 }
+            }
+        }
+
+        if (empty($json) && !empty($config['credentials']) && is_array($config['credentials'])) {
+            $json = $config['credentials'];
+        }
+
+        if (is_array($json)) {
+            $this->clientEmail = $json['client_email'] ?? null;
+            $this->privateKey = $json['private_key'] ?? null;
+            $this->tokenUri = $json['token_uri'] ?? 'https://oauth2.googleapis.com/token';
+            if (empty($this->projectId) && !empty($json['project_id'])) {
+                $this->projectId = $json['project_id'];
             }
         }
     }
@@ -205,7 +229,7 @@ class FirestoreClient {
      */
     public function setDocument(string $collection, string $documentId, array $data, bool $merge = false): array {
         $firestoreData = $this->encodeFields($data);
-        $queryParams = [];
+        $res = null;
         
         if ($merge) {
             $updateMask = [];
@@ -213,10 +237,23 @@ class FirestoreClient {
                 $updateMask[] = "updateMask.fieldPaths=" . urlencode($field);
             }
             $queryStr = implode('&', $updateMask);
-            $res = $this->request('PATCH', "/{$collection}/{$documentId}" . ($queryStr ? '?' . $queryStr : ''), [
+            try {
+                $res = $this->request('PATCH', "/{$collection}/{$documentId}" . ($queryStr ? '?' . $queryStr : ''), [
+                    'fields' => $firestoreData
+                ]);
+            } catch (Exception $e) {
+                // Fallback: If updateMask failed (e.g. document does not exist yet), write full document
+                $res = $this->request('PATCH', "/{$collection}/{$documentId}", [
+                    'fields' => $firestoreData
+                ]);
+            }
+        } else {
+            $res = $this->request('PATCH', "/{$collection}/{$documentId}", [
                 'fields' => $firestoreData
             ]);
-        } else {
+        }
+
+        if (isset($res['__not_found']) && $res['__not_found']) {
             $res = $this->request('PATCH', "/{$collection}/{$documentId}", [
                 'fields' => $firestoreData
             ]);

@@ -1,8 +1,7 @@
 # Composer dependencies
 /vendor/
 
-# Environment and sensitive credentials
-config/config.php
+# Local sensitive raw credentials (protected from public push)
 config/firebase-service-account.json
 *.key
 *.pem

@@ -27,17 +27,15 @@ class DatabaseManager {
 
         // Check if Firebase Service Account credentials are valid
         $fbConfig = $config['firebase_admin'] ?? [];
-        if (!empty($fbConfig['service_account_path']) && file_exists($fbConfig['service_account_path'])) {
-            try {
-                $client = new FirestoreClient($fbConfig);
-                if ($client->isConfigured()) {
-                    $this->firestore = $client;
-                    $this->activeDriver = 'firestore';
-                }
-            } catch (Exception $e) {
-                error_log("Firebase initialization fallback: " . $e->getMessage());
-                $this->activeDriver = 'local';
+        try {
+            $client = new FirestoreClient($fbConfig);
+            if ($client->isConfigured()) {
+                $this->firestore = $client;
+                $this->activeDriver = 'firestore';
             }
+        } catch (Exception $e) {
+            error_log("Firebase initialization fallback: " . $e->getMessage());
+            $this->activeDriver = 'local';
         }
     }
 
