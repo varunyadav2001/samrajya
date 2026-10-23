@@ -781,9 +781,11 @@
   }
 
   .customer-inputs input {
-    font-size: 13px !important;
-    height: 34px !important;
-    padding: 6px 8px !important;
+    font-size: 16px !important; /* Prevents iPhone auto-zoom */
+    height: 36px !important;
+    padding: 6px 10px !important;
+    border-radius: 6px !important;
+    -webkit-appearance: none;
   }
 
   .pos-cart-items {
@@ -933,10 +935,11 @@
   }
 
   .customer-inputs input {
-    font-size: 13.5px !important;
-    height: 35px !important;
+    font-size: 16px !important; /* Prevents iPhone auto-zoom */
+    height: 36px !important;
     padding: 6px 10px !important;
     border-radius: 6px !important;
+    -webkit-appearance: none;
   }
 
   .cart-row-bottom {
